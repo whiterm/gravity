@@ -4,6 +4,7 @@ CONTAINER_DIST_DIR=/app/dist
 # Need unique names to allow parallel jenkins builds
 CONTAINER_NAME := telekube-web-container-$(REPO_VER_TAG)-$(shell bash -c 'echo $$RANDOM')
 IMAGE_NAME := telekube-oss-web:1.0.0
+NODE_VER ?= 12.18.3-buster
 
 HOST_DIR="$$(pwd)"
 HOST_TMP_VOL:= $(shell mktemp -d)
@@ -21,7 +22,9 @@ all: docker-build
 .PHONY:docker-build
 docker-build:
 	rm -rf $(HOST_DIR)/dist
-	docker build --force-rm=true -t $(IMAGE_NAME) .
+	docker build --force-rm=true -t $(IMAGE_NAME) \
+		--build-arg NODE_VER=$(NODE_VER) \
+		.
 	docker create --name $(CONTAINER_NAME) -t $(IMAGE_NAME) && \
 	docker cp $(CONTAINER_NAME):$(CONTAINER_DIST_DIR) $(HOST_DIR)
 	docker rm $(CONTAINER_NAME) | true

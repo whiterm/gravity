@@ -1,0 +1,39 @@
+/*
+Copyright 2020 Gravitational, Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package mage
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/gravitational/magnet"
+	"github.com/gravitational/trace"
+)
+
+// Clean cleans up the build directory.
+func Clean() (err error) {
+	m := root.Target("build:clean")
+	defer func() { m.Complete(err) }()
+
+	return trace.Wrap(os.RemoveAll("_build"))
+}
+
+// Env outputs the list of imported environment variables
+func Env() (err error) {
+	for k, v := range magnet.ImportEnvVars {
+		fmt.Println(k, ":", v)
+	}
+
+	return
+}

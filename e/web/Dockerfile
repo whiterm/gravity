@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node:12.18.3-stretch-slim
+FROM node:12.18.3-buster-slim
 
 RUN apt-get update && apt-get install git -y
 

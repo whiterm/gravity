@@ -7,6 +7,7 @@
 #
 
 OPS_URL ?=
+GOLANG_VER ?=
 LOCALDIR := $(dir $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
 LOCAL_BUILDDIR ?= /gopath/src/github.com/gravitational/gravity/build
 # Path to the local gravity build assets directory used inside the container
@@ -15,6 +16,8 @@ LOCAL_GRAVITY_BUILDDIR ?= /gopath/src/github.com/gravitational/gravity/build/$(G
 DOCKER_ARGS ?= --pull
 NOROOT=-u $$(id -u):$$(id -g)
 BBOX = gravity-buildbox:latest
+
+DOCKER ?= DOCKER_BUILDKIT=1 PROGRESS_NO_TRUNC=1 docker
 
 GRAVITY_WEB_APP_DIR ?= $(abspath $(LOCALDIR)/../web)/
 
@@ -39,15 +42,16 @@ SELINUX_BRANCH ?= distro/centos_rhel/7
 GOLFLAGS ?= -w -s
 
 # Git repositories
-TELEPORT_REPO = https://github.com/gravitational/teleport.git
-PLANET_REPO = https://github.com/gravitational/planet.git
-LOGGING_APP_REPO = https://github.com/gravitational/logging-app.git
-MONITORING_APP_REPO = https://github.com/gravitational/monitoring-app.git
-INGRESS_APP_REPO = https://github.com/gravitational/ingress-app.git
-STORAGE_APP_REPO = https://github.com/gravitational/storage-app.git
-BANDWAGON_REPO = https://github.com/gravitational/bandwagon.git
-FIO_REPO = https://github.com/axboe/fio.git
-SELINUX_REPO = https://github.com/gravitational/selinux.git
+TELEPORT_REPO = git@github.com:gravitational/teleport.git
+PLANET_REPO = git@github.com:gravitational/planet.git
+LOGGING_APP_REPO = git@github.com:gravitational/logging-app.git
+MONITORING_APP_REPO = git@github.com:gravitational/monitoring-app.git
+INGRESS_APP_REPO = git@github.com:gravitational/ingress-app.git
+STORAGE_APP_REPO = git@github.com:gravitational/storage-app.git
+BANDWAGON_REPO = git@github.com:gravitational/bandwagon.git
+FIO_REPO = git@github.com:axboe/fio.git
+#SELINUX_REPO = git@github.com:gravitational/selinux.git
+SELINUX_REPO = git@github.com:a-palchikov/selinux.git
 
 # Amazon S3
 BUILD_BUCKET_URL = s3://clientbuilds.gravitational.io
@@ -126,7 +130,7 @@ endif
 #
 .PHONY: test
 test: buildbox test-etcd
-	docker run --net=host --rm=true $(NOROOT) \
+	$(DOCKER) run --net=host --rm=true $(NOROOT) \
 		-v $(TOP):$(SRCDIR) \
 		-e "GRAVITY_PKG_PATH=$(GRAVITY_PKG_PATH)" \
 		-e "TEST_PACKAGES=$(TEST_PACKAGES)" \
@@ -136,7 +140,10 @@ test: buildbox test-etcd
 
 .PHONY: test-inside-container
 test-inside-container:
-	TEST_ETCD=$(TEST_ETCD) TEST_ETCD_CONFIG=$(TEST_ETCD_CONFIG) TEST_K8S=$(TEST_K8S) go test $(TEST_PACKAGES) $(FLAGS)
+	TEST_ETCD=$(TEST_ETCD) \
+	  TEST_ETCD_CONFIG=$(TEST_ETCD_CONFIG) \
+	  TEST_K8S=$(TEST_K8S) \
+		  go test $(TEST_PACKAGES) $(FLAGS)
 # TODO: It turns out "go vet" never really worked because we used incorrect package path
 # and now that I've fixed it, it produces a gazillion of warnings. So I'm commenting this
 # out for the time being, should uncomment once we've fixed the warnings.
@@ -197,7 +204,7 @@ endif
 grpc: buildbox $(GRPC_PROTO_OUTPUTS)
 
 $(GRPC_PROTO_OUTPUTS): $(GRPC_PROTOS)
-	docker run --rm=true $(NOROOT) \
+	$(DOCKER) run --rm=true $(NOROOT) \
 		   -v $(TOP):$(SRCDIR) \
 		   $(BBOX) \
 		   dumb-init make -C $(subst $(TOP),$(SRCDIR),$(@D))
@@ -211,7 +218,7 @@ validate-deps: buildbox
 	$(eval TMP := $(shell mktemp -d))
 	$(eval REPOFILES := $(addprefix $(TOP),lib tool Makefile version.sh build.assets vendor .git .gitignore Gopkg.lock Gopkg.toml))
 	cp -r $(REPOFILES) $(TMP)
-	docker run --rm=true \
+	$(DOCKER) run --rm=true \
 		   -v $(GITHUB_SSH_KEY):/root/.ssh/id_rsa \
 		   -v $(TMP):$(SRCDIR) \
 		   $(BBOX) \
@@ -222,7 +229,7 @@ validate-deps: buildbox
 #
 .PHONY: build-in-container
 build-in-container: buildbox
-	docker run --rm=true $(NOROOT) \
+	$(DOCKER) run --rm=true $(NOROOT) \
 		   -v $(TOP):$(SRCDIR) \
 		   -e "LOCAL_BUILDDIR=$(LOCAL_BUILDDIR)" \
 		   -e "LOCAL_GRAVITY_BUILDDIR=$(LOCAL_GRAVITY_BUILDDIR)" \
@@ -448,7 +455,7 @@ build-tsh:
 #
 .PHONY: build-tsh-in-container
 build-tsh-in-container: clone-teleport
-	docker run --rm=true $(NOROOT) \
+	$(DOCKER) run --rm=true $(NOROOT) \
            -v $(TOP):$(SRCDIR) \
 		   -v $(TELEPORT_SRCDIR)/teleport:$(TELEPORT_SRCDIR_CONTAINER) \
 		   -e "GRAVITY_PKG_PATH=$(GRAVITY_PKG_PATH)" \
@@ -562,7 +569,7 @@ build-fio:
 
 .PHONY: build-fio-sub
 build-fio-sub: clone-fio
-	docker run --rm=true $(NOROOT) \
+	$(DOCKER) run --rm=true $(NOROOT) \
 	    -v $(TOP):$(SRCDIR) \
 	    -v $(FIO_BUILDDIR):/fio \
 	    $(BBOX) \
@@ -655,7 +662,7 @@ push-storage-app: $(STORAGE_APP_OUT)
 #
 .PHONY: enter
 enter:
-	docker run -ti --rm=true $(BBOX) /bin/bash
+	$(DOCKER) run -ti --rm=true $(BBOX) /bin/bash
 
 .PHONY: selinux-policy-package
 selinux-policy-package: $(SELINUX_OUT)
@@ -664,16 +671,17 @@ selinux-policy-package: $(SELINUX_OUT)
 
 .PHONY: selinux
 selinux: $(SELINUX_ASSETS)
-ifeq ($(OS),linux)
 	$(MAKE) -C $(TOP)/lib/system/selinux
-endif
 
 .PHONY: push-selinux
 push-selinux: $(SELINUX_OUT)
 	$(AWS) s3 cp $(S3_OPTS) $(SELINUX_OUT) $(BUILD_BUCKET_URL)/selinux/centos/$(SELINUX_VERSION)
 
-$(SELINUX_ASSETS): $(SELINUX_OUT)
+$(SELINUX_ASSETS): $(SELINUX_OUT) | $(SELINUX_ASSETSDIR)
 	tar xf $^ -C $(@D) $(@F)
+
+$(SELINUX_ASSETSDIR):
+	mkdir -p $@
 
 $(SELINUX_OUT): | $(GRAVITY_BUILDDIR)
 	if ! $(AWS) s3 cp $(S3_OPTS) $(BUILD_BUCKET_URL)/selinux/centos/$(SELINUX_VERSION) $@; then \
@@ -692,12 +700,13 @@ $(SELINUX_OUT): | $(GRAVITY_BUILDDIR)
 #
 .PHONY: buildbox
 buildbox:
-	docker build \
+	DOCKER_BUILDKIT=1 PROGRESS_NO_TRUNC=1 docker build \
 		--build-arg PROTOC_VER=$(PROTOC_VER) \
 		--build-arg PROTOC_PLATFORM=$(PROTOC_PLATFORM) \
 		--build-arg GOGO_PROTO_TAG=$(GOGO_PROTO_TAG) \
 		--build-arg GRPC_GATEWAY_TAG=$(GRPC_GATEWAY_TAG) \
 		--build-arg VERSION_TAG=$(VERSION_TAG) \
+		--build-arg GOLANG_VER=$(GOLANG_VER) \
 		--build-arg UID=$(shell id -u) \
 		--build-arg GID=$(shell id -g) \
 		$(DOCKER_ARGS) --tag $(BBOX) .

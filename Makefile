@@ -26,6 +26,10 @@ K8S_VER := 1.21.0
 K8S_VER_SUFFIX := $(shell printf "%d%02d%02d" $(shell echo $(K8S_VER) | sed "s/\./ /g"))
 GOLFLAGS ?= -w -s
 
+#GOLANG_VER ?= 1.13.8-buster
+# TODO(dima): keep building with stretch as long as centos/7 is supported
+# which has a very old glibc
+GOLANG_VER ?= 1.13.8-stretch
 ETCD_VER := v2.3.7
 # Version of the version tool
 VERSION_TAG := 0.0.2
@@ -47,13 +51,15 @@ TELEPORT_TAG = 3.2.17
 # TELEPORT_REPOTAG adapts TELEPORT_TAG to the teleport tagging scheme
 TELEPORT_REPOTAG := v$(TELEPORT_TAG)
 PLANET_TAG := 9.0.0-$(K8S_VER_SUFFIX)
-PLANET_BRANCH := $(PLANET_TAG)
+PLANET_BRANCH := dmitri/buildx
 K8S_APP_TAG := $(GRAVITY_TAG)
 TELEKUBE_APP_TAG := $(GRAVITY_TAG)
 WORMHOLE_APP_TAG := $(GRAVITY_TAG)
 INGRESS_APP_TAG ?= 0.0.1
 STORAGE_APP_TAG ?= 0.0.4
 LOGGING_APP_TAG ?= 7.1.2
+MONITORING_APP_REPO ?= https://github.com/a-palchikov/monitoring-app
+MONITORING_APP_BRANCH ?= dmitri/buster
 MONITORING_APP_TAG ?= 7.1.4
 DNS_APP_TAG = 7.1.2
 BANDWAGON_TAG ?= 7.1.0
@@ -729,5 +735,31 @@ clean-codegen:
 .PHONY: selinux
 selinux:
 	$(MAKE) -C build.assets	selinux
+
+.PHONY: magnet-vars
+magnet-vars:
+	@echo GOLANG_VER=${GOLANG_VER}
+	@echo FIO_VER=${FIO_VER}
+	@echo TELEPORT_TAG=${TELEPORT_TAG}
+	@echo GRPC_PROTOC_VER=${PROTOC_VER}
+	@echo GOGO_PROTO_TAG=${GOGO_PROTO_TAG}
+	@echo GRPC_GATEWAY_TAG=${GRPC_GATEWAY_TAG}
+	@echo K8S_VER=${K8S_VER}
+	@echo PLANET_TAG=${PLANET_TAG}
+	@echo PLANET_BRANCH=${PLANET_BRANCH}
+	@echo INGRESS_APP_VERSION=${INGRESS_APP_TAG}
+	@echo STORAGE_APP_VERSION=${STORAGE_APP_TAG}
+	@echo LOGGING_APP_VERSION=${LOGGING_APP_TAG}
+	@echo MONITORING_APP_VERSION=${MONITORING_APP_TAG}
+	@echo MONITORING_APP_REPO=${MONITORING_APP_REPO}
+	@echo MONITORING_APP_BRANCH=${MONITORING_APP_BRANCH}
+	@echo BANDWAGON_APP_TAG=${BANDWAGON_TAG}
+	@echo DNS_APP_VERSION=${DNS_APP_TAG}
+	@echo TILLER_APP_TAG=${TILLER_APP_TAG}
+	@echo TILLER_VERSION=${TILLER_VERSION}
+	@echo SELINUX_VERSION=${SELINUX_VERSION}
+	@echo WORMHOLE_IMG=${WORMHOLE_IMG}
+	@echo BUILD_VERSION=${GRAVITY_VERSION}
+
 
 include build.assets/etcd.mk

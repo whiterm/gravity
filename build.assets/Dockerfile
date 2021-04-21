@@ -1,10 +1,11 @@
-FROM quay.io/gravitational/debian-venti:go1.13.8-stretch
+ARG GOLANG_VER
+FROM quay.io/gravitational/debian-venti:go${GOLANG_VER}
 
 ARG PROTOC_VER
 ARG PROTOC_PLATFORM
 ARG GOGO_PROTO_TAG
 ARG GRPC_GATEWAY_TAG
-ARG VERSION_TAG
+ARG GOLANGCI_VER
 ARG UID
 ARG GID
 
@@ -13,8 +14,13 @@ ENV GRPC_GATEWAY_ROOT /gopath/src/github.com/grpc-ecosystem/grpc-gateway
 ENV GOGOPROTO_ROOT /gopath/src/github.com/gogo/protobuf
 ENV PROTOC_URL https://github.com/google/protobuf/releases/download/v${PROTOC_VER}/protoc-${PROTOC_VER}-${PROTOC_PLATFORM}.zip
 
+RUN curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $GOPATH/bin ${GOLANGCI_VER}
+
+ENV DEBIAN_FRONTEND=noninteractive 
+
 # install development libraries used when compiling fio
-RUN apt-get -q -y update --fix-missing && apt-get -q -y install libaio-dev zlib1g-dev
+RUN set -ex && \
+	apt-get -q -y update --fix-missing && apt-get -q -y install --no-install-recommends libaio-dev zlib1g-dev dumb-init
 
 RUN getent group  $GID || groupadd builder --gid=$GID -o; \
     getent passwd $UID || useradd builder --uid=$UID --gid=$GID --create-home --shell=/bin/sh;
@@ -45,10 +51,9 @@ RUN (mkdir -p /gopath/src/github.com/gravitational && \
 RUN (wget --quiet -O /tmp/${TARBALL} ${PROTOC_URL} && \
      unzip -d /opt/protoc /tmp/${TARBALL} && \
      mkdir -p /gopath/src/github.com/gogo/ /gopath/src/github.com/grpc-ecosystem && \
-     git clone https://github.com/gogo/protobuf --branch ${GOGO_PROTO_TAG} /gopath/src/github.com/gogo/protobuf && cd /gopath/src/github.com/gogo/protobuf && make install && \
-     git clone https://github.com/grpc-ecosystem/grpc-gateway --branch ${GRPC_GATEWAY_TAG} /gopath/src/github.com/grpc-ecosystem/grpc-gateway && cd /gopath/src/github.com/grpc-ecosystem/grpc-gateway && pwd && go install ./protoc-gen-grpc-gateway)
+     git clone https://github.com/gogo/protobuf --branch ${GOGO_PROTO_TAG} --depth 1 /gopath/src/github.com/gogo/protobuf && cd /gopath/src/github.com/gogo/protobuf && make install && \
+     git clone https://github.com/grpc-ecosystem/grpc-gateway --branch ${GRPC_GATEWAY_TAG} --depth 1 /gopath/src/github.com/grpc-ecosystem/grpc-gateway && cd /gopath/src/github.com/grpc-ecosystem/grpc-gateway && pwd && go install ./protoc-gen-grpc-gateway)
 
 ENV PROTO_INCLUDE "/usr/local/include":"/gopath/src":"${GRPC_GATEWAY_ROOT}/third_party/googleapis":"${GOGOPROTO_ROOT}/gogoproto"
-
 
 VOLUME ["/gopath/src/github.com/gravitational/gravity"]

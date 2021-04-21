@@ -1,3 +1,19 @@
+Steps to update the repo from `upstream` (https://github.com/gravitational/gravity).
+
+```bash
+git remote add gravitational-gravity https://github.com/gravitational/gravity.git
+git br -D upstream
+git branch -f upstream gravitational-gravity/master
+git co upstream
+git push origin upstream
+```
+
+___
+
+The original README.md following below.
+
+___
+
 <a href='https://gravitational.com/gravity/'>
     <img src='https://gravitational.com/gravitational/images/logos/logo-gravity-x-large.png' alt='Gravity'>
 </a>

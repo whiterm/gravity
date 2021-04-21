@@ -1,0 +1,81 @@
+package mage
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/gravitational/magnet"
+	"github.com/gravitational/trace"
+	"github.com/magefile/mage/mg"
+)
+
+type Test mg.Namespace
+
+func (Test) All() {
+	//mg.SerialDeps(Build.Go, Build.BuildContainer)
+	mg.Deps(Test.Unit, Test.Lint)
+}
+
+// Lint runs golangci linter against the repo.
+func (Test) Lint() (err error) {
+	mg.Deps(Build.BuildContainer)
+
+	m := root.Target("test:lint")
+	defer func() { m.Complete(err) }()
+
+	m.Printlnf("Running golangci-lint")
+	m.Println("  Linter: ", golangciVersion)
+
+	wd, _ := os.Getwd()
+	cacheDir, err := root.Config.AbsCacheDir()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return trace.Wrap(trace.ConvertSystemError(err))
+	}
+
+	err = m.DockerRun().
+		SetRemove(true).
+		SetUID(fmt.Sprint(os.Getuid())).
+		SetGID(fmt.Sprint(os.Getgid())).
+		AddVolume(magnet.DockerBindMount{
+			Source:      wd,
+			Destination: "/gopath/src/github.com/gravitational/gravity",
+			Readonly:    true,
+			Consistency: "cached",
+		}).
+		AddVolume(magnet.DockerBindMount{
+			Source:      cacheDir,
+			Destination: "/cache",
+			Consistency: "cached",
+		}).
+		SetEnv("XDG_CACHE_HOME", "/cache").
+		SetEnv("GOCACHE", "/cache/go").
+		Run(context.TODO(), buildBoxName(),
+			"/usr/bin/dumb-init",
+			"bash", "-c",
+			"golangci-lint run /gopath/src/github.com/gravitational/gravity/... --config /gopath/src/github.com/gravitational/gravity/.golangci.yml",
+		)
+
+	return trace.Wrap(err)
+}
+
+// Unit runs unit tests with the race detector enabled.
+func (Test) Unit() (err error) {
+	mg.Deps(Build.BuildContainer)
+
+	m := root.Target("test:unit")
+	defer func() { m.Complete(err) }()
+
+	m.Println("Running unit tests")
+
+	err = m.GolangTest().
+		SetRace(true).
+		SetBuildContainer(buildBoxName()).
+		SetEnv("GO111MODULE", "on").
+		SetMod("vendor").
+		Test(context.TODO(), "./...")
+	return
+}

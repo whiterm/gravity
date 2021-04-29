@@ -4,6 +4,7 @@
 /build/
 /_build/
 /e/build/
+.idea/
 *.test
 flymake*
 *tar

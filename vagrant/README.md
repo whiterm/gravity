@@ -21,6 +21,14 @@ iptables -w -t filter -A INPUT -i virbr+ -j ACCEPT
 ...
 ```
 
+## Preparing for MacOS
+
+1. Install brew on macOS https://brew.sh/
+1. Install vagrant: `brew install --cask vagrant`
+1. Install VirtualBox: `brew install --cask virtualbox`
+1. Install ansible: `brew install ansible`
+1. Install vagrant plugins: `vagrant plugin install vagrant-disksize`
+
 ## Install Telekube on Vagrant
 
 Change working directory to `vagrant` folder and execute:
@@ -32,17 +40,22 @@ $ vagrant up
 
 This will bring 3 VMs properly configured for development
 
-Build telekube
-
+Build gravity and prepare tarball
 ```sh
-$ make production telekube
+$ go run mage.go cluster:gravity
 ```
 
-Install telekube
-
+Install gravity cluster
 ```sh
 $ cd vagrant
 $ make ansible-install
+```
+
+Install gravity from custom tarball
+```shell
+$ cd vagrant
+$ ANSIBLE_FLAGS='--extra-vars "gravity_archive_url=https://get.gravitational.com/gravity-7.0.28-linux-x86_64-bin.tar.gz tarball_path=/full_path_to_tarball.tar"'
+$ ANSIBLE_FLAGS=$ANSIBLE_FLAGS make ansible-install
 ```
 
 ## Redeploy just Gravity

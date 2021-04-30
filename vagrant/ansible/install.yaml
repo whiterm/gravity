@@ -8,7 +8,7 @@
   - name: Install gravity cluster
     become: yes
     shell:
-      chdir: /vagrant/installer
+      chdir: /installer/gravity
       cmd: |
         {% if inventory_hostname == groups['nodes'][0] %}
         ./gravity install \

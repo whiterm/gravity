@@ -3,9 +3,18 @@
 - hosts: all
   become: yes
   tasks:
-    - name: Enable epel-release
+    - name: Enable EPEL Repository on CentOS 8
+      dnf:
+        name: epel-release
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+        - ansible_facts['distribution_major_version'] == '8'
+    - name: Enable EPEL Repository on CentOS 7
       yum:
         name: epel-release
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+        - ansible_facts['distribution_major_version'] == '7'
 
     - name: Install required packages
       package:
@@ -24,7 +33,20 @@
           - wget
           - chrony
           - traceroute
+
+    - name: Install required packages for RedHat family
+      package:
+        name:
           - cloud-utils-growpart
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+
+    - name: Install required packages for Debian family
+      package:
+        name:
+          - cloud-guest-utils
+      when:
+        - ansible_facts['os_family'] == 'Debian'
 
     - name: Set up default opscenter hostname
       lineinfile:
@@ -51,14 +73,27 @@
         - net.bridge.bridge-nf-call-ip6tables
         - net.bridge.bridge-nf-call-iptables
 
+    - name: Find root disk
+      shell: cat /proc/mounts | grep ' / ' | head -n1
+      register: root_mount
+
+    - set_fact:
+        partition_path: "{{ root_mount.stdout.split(' ')[0] }}"
+        disk_type: "{{ root_mount.stdout.split(' ')[2] }}"
+    - set_fact:
+        disk_path: "{{ partition_path | regex_search('(/dev/\\w+)\\d+', '\\1') | first }}"
+        partition_number: "{{ partition_path | regex_search('/dev/\\w+(\\d+)', '\\1') | first }}"
+    - debug:
+        msg: "partition_path: {{ partition_path }} disk_path: {{ disk_path }} type: {{ disk_type }} partition: {{ partition_number }}"
+
     - name: Grow partition until maximum
-      command: growpart /dev/sda 1
+      shell: "growpart /dev/sda {{ partition_number }}"
       register: growpart
       ignore_errors: true
 
     - name: Extend the FS
       when: growpart.rc == 0
       filesystem:
-        fstype: 'xfs'
-        dev: '/dev/sda1'
+        fstype: "{{ disk_type }}"
+        dev: "{{ partition_path }}"
         resizefs: yes

@@ -74,17 +74,17 @@
         - net.bridge.bridge-nf-call-iptables
 
     - name: Find root disk
-      shell: cat /proc/mounts | grep ' / ' | head -n1
+      shell: mount -l | grep ' on / type ' | head -n1
       register: root_mount
 
     - set_fact:
         partition_path: "{{ root_mount.stdout.split(' ')[0] }}"
-        disk_type: "{{ root_mount.stdout.split(' ')[2] }}"
+        disk_fstype: "{{ root_mount.stdout.split(' ')[4] }}"
     - set_fact:
         disk_path: "{{ partition_path | regex_search('(/dev/\\w+)\\d+', '\\1') | first }}"
         partition_number: "{{ partition_path | regex_search('/dev/\\w+(\\d+)', '\\1') | first }}"
     - debug:
-        msg: "partition_path: {{ partition_path }} disk_path: {{ disk_path }} type: {{ disk_type }} partition: {{ partition_number }}"
+        msg: "partition_path: {{ partition_path }} disk_path: {{ disk_path }} fs_type: {{ disk_fstype }} partition: {{ partition_number }}"
 
     - name: Grow partition until maximum
       shell: "growpart /dev/sda {{ partition_number }}"
@@ -94,6 +94,6 @@
     - name: Extend the FS
       when: growpart.rc == 0
       filesystem:
-        fstype: "{{ disk_type }}"
+        fstype: "{{ disk_fstype }}"
         dev: "{{ partition_path }}"
         resizefs: yes

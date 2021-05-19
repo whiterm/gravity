@@ -2151,6 +2151,8 @@ type UpdateOperationState struct {
 
 // UpdateEnvarsOperationState describes the state of the operation to update cluster environment variables.
 type UpdateEnvarsOperationState struct {
+	// ClusterConfig specifies the raw resource of cluster configuration
+	ClusterConfig []byte `json:"clusterConfig,omitempty"`
 	// PrevEnv specifies the previous environment state
 	PrevEnv map[string]string `json:"prev_env,omitempty"`
 	// Env defines new cluster environment variables

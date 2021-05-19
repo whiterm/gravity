@@ -309,6 +309,7 @@ $(GOCACHE):
 .PHONY: $(TARGETS)
 $(TARGETS): | $(GOCACHE)
 	@echo -e "\n----> Building $@ binary...\n"
+	GO111MODULE=on go build -mod=vendor -gcflags='all=-N -l' -o $@_gdb -ldflags $(GRAVITY_LINKFLAGS) $(GRAVITY_BUILDFLAGS) -tags "$(GRAVITY_BUILDTAGS)" $(GRAVITY_PKG_PATH)/tool/$(@F)
 	GO111MODULE=on go build -mod=vendor -o $@ -ldflags $(GRAVITY_LINKFLAGS) $(GRAVITY_BUILDFLAGS) -tags "$(GRAVITY_BUILDTAGS)" $(GRAVITY_PKG_PATH)/tool/$(@F)
 	@echo "\nDone --> $@\n"
 

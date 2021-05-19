@@ -24,7 +24,7 @@ K8S_VER := 1.21.0
 # major + minor padded to 2 chars with 0 + patch also padded to 2 chars, e.g.
 # 1.13.5 -> 11305, 1.13.12 -> 11312, 2.0.0 -> 20000 and so on
 K8S_VER_SUFFIX := $(shell printf "%d%02d%02d" $(shell echo $(K8S_VER) | sed "s/\./ /g"))
-GOLFLAGS ?= -w -s
+GOLFLAGS ?=
 
 ETCD_VER := v2.3.7
 # Version of the version tool

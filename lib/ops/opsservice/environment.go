@@ -25,6 +25,7 @@ import (
 	"github.com/gravitational/gravity/lib/kubernetes"
 	"github.com/gravitational/gravity/lib/ops"
 	"github.com/gravitational/gravity/lib/storage"
+	"github.com/gravitational/gravity/lib/storage/clusterconfig"
 
 	"github.com/gravitational/rigging"
 	"github.com/gravitational/trace"
@@ -44,11 +45,19 @@ func (o *Operator) CreateUpdateEnvarsOperation(ctx context.Context, r ops.Create
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	clConfig, err := cluster.getClusterConfiguration()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	clConfigBytes, err := clusterconfig.Marshal(clConfig)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
 	env, err := o.getClusterEnvironment()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	key, err := cluster.createUpdateEnvarsOperation(ctx, r, env)
+	key, err := cluster.createUpdateEnvarsOperation(ctx, r, env, clConfigBytes)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -137,7 +146,7 @@ func NewEnvironmentConfigMap(data map[string]string) *v1.ConfigMap {
 }
 
 // createUpdateEnvarsOperation creates a new operation to update cluster environment variables
-func (s *site) createUpdateEnvarsOperation(ctx context.Context, req ops.CreateUpdateEnvarsOperationRequest, prevEnv map[string]string) (*ops.SiteOperationKey, error) {
+func (s *site) createUpdateEnvarsOperation(ctx context.Context, req ops.CreateUpdateEnvarsOperationRequest, prevEnv map[string]string, clusterConfig []byte) (*ops.SiteOperationKey, error) {
 	op := ops.SiteOperation{
 		ID:         uuid.New(),
 		AccountID:  s.key.AccountID,
@@ -148,8 +157,9 @@ func (s *site) createUpdateEnvarsOperation(ctx context.Context, req ops.CreateUp
 		Updated:    s.clock().UtcNow(),
 		State:      ops.OperationUpdateRuntimeEnvironInProgress,
 		UpdateEnviron: &storage.UpdateEnvarsOperationState{
-			PrevEnv: prevEnv,
-			Env:     req.Env,
+			ClusterConfig: clusterConfig,
+			PrevEnv:       prevEnv,
+			Env:           req.Env,
 		},
 	}
 	key, err := s.getOperationGroup().createSiteOperation(op)

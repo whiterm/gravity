@@ -51,7 +51,7 @@ CoreDNS will resolve `leader.telekube.local` to either the external address (dom
 Docker image references should continue pointing to internal registry at `leader.telekube.local:5000`.
 To achieve this, docker registry will use port 5001 with port 5000 left to the loadbalancer.
 
-### User Stories (Optional)
+### User Stories
 #### Story 1
 As a cluster administrator, I can configure the loadbalancer when creating a cluster. If I set the type of loadbalancer to external, I can provide the external address in configuration.
 #### Story 2
@@ -98,9 +98,11 @@ The user is responsible for configuring the loadbalancer to open the following p
 For an internal load balancer:
 The software load balancer is haproxy, it will run on each node in the cluster.
 Port 9443 will be used for load-balancing kube-apiserver and port 5000 will be used for load-balancing the docker registry.
-The planet agent on master nodes will monitor the node IP address in etcd using the key `/planet/cluster/${KUBE_CLUSTER_ID}/masters/${MASTER_IP}` with a TTL 4 of hours.
-The planet agent on each node, including master nodes will be watching all keys in `/planet/cluster/${KUBE_CLUSTER_ID}/masters/` to change the haproxy configuration and reload it if necessary.
-from etcd `/planet/cluster/${KUBE_CLUSTER_ID}/masters/` to change the haproxy configuration and reload it if necessary.
+The planet agent on master nodes will monitor the node IP address in etcd using 
+the key `/planet/cluster/${KUBE_CLUSTER_ID}/masters/${MASTER_IP}` with a TTL 4 of hours.
+The planet agent on each node, including master nodes will be watching all keys in 
+`/planet/cluster/${KUBE_CLUSTER_ID}/masters/` to change the haproxy configuration and reload it if necessary.
+TTL is needed to automatically remove master nodes from load balancing if those nodes are removed and no longer respond.
 
 ### Test Plan
 - [ ] Install the cluster with the default configuration for the load balancer

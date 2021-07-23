@@ -39,7 +39,7 @@ This proposal aims to provide the following improvements:
 When creating a cluster, the user can choose the load balancer to be either external or internal.
 External loadbalancer is not controlled or configured by Gravity, it is the user's responsibility.
 The internal loadbalancer, on the contrary, is controlled and configured by Gravity, the planet-agent is responsible for this.
-When using an internal loadbalancer, a loadbalancer (HAProxy) will be installed for each node in the cluster including the master.
+When using an internal loadbalancer, a loadbalancer (HAProxy) will be installed for each node in the cluster including the master nodes.
 When changing the configuration of the masters, the agent should automatically change the loadbalancer configuration on each node.
 All Kubernetes components (kubelet, scheduler, control-manager, kube-proxy) will use the loadbalancer to access the apiserver.
 

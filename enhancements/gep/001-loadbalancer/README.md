@@ -91,7 +91,7 @@ for the internal loadbalancer or the address of the external loadbalancer.
 Kubeconfig files will use a new address to point to kube-apiserver, it will be 127.0.0.1 for the internal loadbalancer or the address of the external loadbalancer.
 
 For an external loadbalancer:
-The user must configure the balancer himself to open the following ports
+The user is responsible for configuring the loadbalancer to open the following ports
   1. for kube-apiserver: 9443 -> (master ip addresses): 6443
   1. for docker-registry: 5000 -> (master ip addresses): 5001
 

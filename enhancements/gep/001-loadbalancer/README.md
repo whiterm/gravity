@@ -53,12 +53,12 @@ To achieve this, docker registry will use port 5001 with port 5000 left to the l
 
 ### User Stories (Optional)
 #### Story 1
-As a cluster administrator, I can set the loadbalancer settings when creating a cluster. Set the type of loadbalancer external or internal and indicate the external address.
+As a cluster administrator, I can configure the loadbalancer when creating a cluster. If I set the type of loadbalancer to external, I can provide the external address in configuration.
 #### Story 2
-As a cluster administrator, I can change the loadbalancer settings on a running cluster
+As a cluster administrator, I can change the loadbalancer settings on a running cluster.
 
 ### Risks and Mitigations
-The `leader.telekube.local` address will not point to the master node.
+As the `leader.telekube.local` domain will not point to a master node, the applications using this address should be updated accordingly.
 If any applications use this address, they should be changed accordingly.
 
 ## Design Details
@@ -83,12 +83,12 @@ spec:
     # gravity uses this field when type is external
     externalAddress: "IP address | DNS address"
 ```
-The names of docker images should not be changed, and they should start with `leader.telekube.local:5000/`. 
-So docker registers on master nodes by default will use port 5001 instead of 5000, 
-and loadbalancer will use port 5000. The address `leader.telekube.local` will point to 127.0.0.1 
+The docker image references should not be changed, and they should start with `leader.telekube.local:5000/`. 
+So docker registries on master nodes by default will use port 5001 with 5000 reserved for the loadbalancer. 
+The domain `leader.telekube.local` will either resolve to 127.0.0.1 
 for the internal loadbalancer or the address of the external loadbalancer.
 
-Kubeconfig files will use a new address to point to kube-apiserver, it will be 127.0.0.1 for the internal loadbalancer or the address of the external loadbalancer.
+Kubeconfig files will either use 127.0.0.1 for the internal loadbalancer or the address of the external loadbalancer to point to the api server.
 
 For an external loadbalancer:
 The user is responsible for configuring the loadbalancer to open the following ports

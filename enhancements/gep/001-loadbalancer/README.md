@@ -99,7 +99,7 @@ For an internal load balancer:
 The software load balancer is haproxy, it will run on each node in the cluster.
 Port 9443 will be used for load-balancing kube-apiserver and port 5000 will be used for load-balancing the docker registry.
 The planet agent on master nodes saves and monitors the ip address in etcd using the key `/planet/cluster/${KUBE_CLUSTER_ID}/masters/${MASTER_IP}` with TTL 4 hours
-The planet agent on each node, including the master is tracing all keys 
+The planet agent on each node, including master nodes will be watching all keys in `/planet/cluster/${KUBE_CLUSTER_ID}/masters/` to change the haproxy configuration and reload it if necessary.
 from etcd `/planet/cluster/${KUBE_CLUSTER_ID}/masters/` to change the haproxy configuration and reload it if necessary.
 
 ### Test Plan

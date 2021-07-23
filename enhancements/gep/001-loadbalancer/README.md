@@ -36,7 +36,7 @@ This proposal aims to provide the following improvements:
   1. Cluster upgrades will be faster and more efficient
 
 ### Goals
-When creating a cluster, the user can choose which load balancer will be external or internal.
+When creating a cluster, the user can choose the load balancer to be either external or internal.
 External loadbalancer is not controlled or configured by Gravity, it is the user's responsibility.
 The internal loadbalancer, on the contrary, is controlled and configured by Gravity, the planet-agent is responsible for this.
 When using an internal loadbalancer, a loadbalancer (HAProxy) will be installed for each node in the cluster including the master.

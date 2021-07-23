@@ -48,7 +48,7 @@ All Kubernetes components (kubelet, scheduler, control-manager, kube-proxy) will
 ## Proposal
 Change DNS balancer to a software loadbalancer (HAProxy).
 CoreDNS will resolve `leader.telekube.local` to either the external address (domain name or IP) of the loadbalancer (subject to which configuration?) or to `127.0.0.1` when using the internal loadbalancer.
-Image names should remain unchanged and start with `leader.telekube.local:5000`.
+Docker image references should continue pointing to internal registry at `leader.telekube.local:5000`.
 To do this, the docker register must use port 5001, and port 5000 must be open on the loadbalancer.
 
 ### User Stories (Optional)

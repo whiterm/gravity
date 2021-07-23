@@ -32,7 +32,7 @@ but DNS is not a good tool for balancing traffic.
 This proposal aims to provide the following improvements:
   1. Evenly distribute the load between all apiserver replicas
   1. Improve the stability and scalability of the cluster
-  1. nodes will react faster on the disaster of the masters and recovery process
+  1. Nodes will react faster to master failures [and recovery process]
   1. the update will be faster and more efficient
 
 ### Goals

@@ -30,7 +30,7 @@ will go through this loadbalancer. Also, requests to the docker registry must al
 At the moment, Gravity is using CoreDNS to determine which master to send requests to,
 but DNS is not a good tool for balancing traffic.
 This proposal aims to provide the following improvements:
-  1. will evenly distribute the load on the apiserver kubernetes
+  1. Evenly distribute the load between all apiserver replicas
   1. Improve the stability and scalability of the cluster
   1. nodes will react faster on the disaster of the masters and recovery process
   1. the update will be faster and more efficient

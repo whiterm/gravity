@@ -18,7 +18,7 @@
 - [Production Readiness Review Questionnaire](#production-readiness-review-questionnaire)
     - [Feature Enablement and Rollback](#feature-enablement-and-rollback)
 - [Implementation History](#implementation-history)
-\
+
 <!-- /toc -->
 
 ## Summary
@@ -32,7 +32,7 @@ but DNS is not a good tool for balancing traffic.
 This proposal aims to provide the following improvements:
   1. Evenly distribute the load between all apiserver replicas
   1. Improve the stability and scalability of the cluster
-  1. Nodes will react faster to master failures [and recovery process]
+  1. Nodes will react faster to master failures
   1. Cluster upgrades will be faster and more efficient
 
 ### Goals
@@ -40,7 +40,7 @@ When creating a cluster, the user can choose the load balancer to be either exte
 External loadbalancer is not controlled or configured by Gravity, it is the user's responsibility.
 The internal loadbalancer, on the contrary, is controlled and configured by Gravity, the planet-agent is responsible for this.
 When using an internal loadbalancer, a loadbalancer (HAProxy) will be installed for each node in the cluster including the master nodes.
-When changing the configuration of the masters, the agent should automatically change the loadbalancer configuration on each node.
+When adding/removing master nodes, the agent on each node should automatically reflect this in the local loadbalancer configuration.
 All Kubernetes components (kubelet, scheduler, control-manager, kube-proxy) will use the loadbalancer to access the apiserver.
 
 ### Non-Goals
@@ -59,7 +59,6 @@ As a cluster administrator, I can change the loadbalancer settings on a running 
 
 ### Risks and Mitigations
 As the `leader.telekube.local` domain will not point to a master node, the applications using this address should be updated accordingly.
-If any applications use this address, they should be changed accordingly.
 
 ## Design Details
 An additional section will be added to the cluster manifest for setting up the loadbalancer:

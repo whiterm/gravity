@@ -724,6 +724,9 @@ func (i *InstallConfig) updateClusterConfig(resources []storage.UnknownResource)
 				CloudProvider: i.CloudProvider,
 				ServiceCIDR:   i.ServiceCIDR,
 				PodCIDR:       i.PodCIDR,
+				LoadBalancer: &clusterconfig.LoadBalancer{
+					Type: clusterconfig.LoadbalancerInternal,
+				},
 			},
 		})
 	} else {

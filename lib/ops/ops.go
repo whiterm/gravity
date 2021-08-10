@@ -1116,6 +1116,8 @@ type RotateSecretsRequest struct {
 	ServiceCIDR string `json:"service_cidr,omitempty"`
 	// DryRun specifies whether only the package locator is generated
 	DryRun bool `json:"dry_run"`
+	// Config specifies optional cluster configuration resource
+	Config []byte `json:"cluster_config,omitempty"`
 }
 
 // CheckAndSetDefaults validates this request and sets defaults

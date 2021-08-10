@@ -291,7 +291,6 @@ func buildFlags() []string {
 		fmt.Sprint(`-X github.com/gravitational/version.version=`, buildVersion),
 		fmt.Sprint(`-X github.com/gravitational/gravity/lib/defaults.WormholeImg=`, wormholeImage),
 		fmt.Sprint(`-X github.com/gravitational/gravity/lib/defaults.TeleportVersionString=`, teleportTag),
-		"-s -w", // shrink the binary
 	}
 }
 

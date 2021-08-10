@@ -12,7 +12,7 @@
       register: command_output
     - set_fact:
         gravity_version: "{{ command_output.stdout }}"
-        build_tarball_path: "{{root_dir}}/build/{{command_output.stdout}}/telekube.tar"
+        build_tarball_path: "{{root_dir}}/_build/{{command_output.stdout}}/gravity.tar"
     - set_fact:
         current_tarball_path: "{{ tarball_path | default(build_tarball_path, true) }}"
     - debug: msg="gravity version - {{gravity_version}}. tarball - {{ current_tarball_path }}"
@@ -78,7 +78,7 @@
       become: yes
       copy:
         force: yes
-        src: "{{root_dir}}/build/{{gravity_version}}/gravity"
+        src: "{{root_dir}}/_build/{{gravity_version}}/bin/linux-amd64/gravity"
         dest: "/installer/gravity/gravity"
         mode: 0755
 

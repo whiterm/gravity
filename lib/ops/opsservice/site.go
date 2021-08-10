@@ -18,6 +18,7 @@ package opsservice
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -563,6 +564,9 @@ func (s *site) getClusterConfiguration() (*clusterconfig.Resource, error) {
 	if err != nil && !trace.IsNotFound(err) {
 		return nil, trace.Wrap(err)
 	}
+	if out, err := json.Marshal(configmap); err == nil {
+		log.WithField("configmap", string(out)).Info("Cluster configuration.9")
+	}
 	var spec string
 	if configmap != nil {
 		spec = configmap.Data["spec"]
@@ -573,11 +577,20 @@ func (s *site) getClusterConfiguration() (*clusterconfig.Resource, error) {
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
+		if out, err := json.Marshal(config); err == nil {
+			log.WithField("configmap", string(out)).Info("Cluster configuration.10")
+		}
 	} else {
 		config = clusterconfig.NewEmpty()
 	}
+	if out, err := json.Marshal(config); err == nil {
+		log.WithField("configmap", string(out)).Info("Cluster configuration.11")
+	}
 	if err := s.setClusterConfigDefaults(config); err != nil {
 		return nil, trace.Wrap(err)
+	}
+	if out, err := json.Marshal(config); err == nil {
+		log.WithField("configmap", string(out)).Info("Cluster configuration.12")
 	}
 	return config, nil
 }
@@ -598,6 +611,12 @@ func (s *site) setClusterConfigDefaults(config *clusterconfig.Resource) error {
 	}
 	if config.Spec.Global.ServiceCIDR == "" {
 		config.Spec.Global.ServiceCIDR = installOp.InstallExpand.Vars.OnPrem.ServiceCIDR
+	}
+	if config.Spec.Global.LoadBalancer == nil {
+		config.Spec.Global.LoadBalancer = &clusterconfig.LoadBalancer{}
+	}
+	if config.Spec.Global.LoadBalancer.Type == "" {
+		config.Spec.Global.LoadBalancer.Type = clusterconfig.LoadbalancerInternal
 	}
 	return nil
 }

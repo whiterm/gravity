@@ -89,7 +89,7 @@ func ClusterConfiguration(existing, update clusterconfig.Interface) error {
 		return trace.Wrap(err)
 	}
 
-	if !isSupportedBackend(newGlobalConfig.FlannelBackend) {
+	if newGlobalConfig.FlannelBackend != "" && !isSupportedBackend(newGlobalConfig.FlannelBackend) {
 		return trace.BadParameter("unsupported flannel backend was specified: %v", newGlobalConfig.FlannelBackend)
 	}
 

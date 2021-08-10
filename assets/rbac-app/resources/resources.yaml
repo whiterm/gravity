@@ -72,6 +72,8 @@ roleRef:
 subjects:
 - kind: Group
   name: system:masters
+- kind: Group
+  name: system:nodes
 - kind: ServiceAccount
   name: kube-dns
   namespace: kube-system

@@ -18,6 +18,7 @@ package clusterconfig
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 
 	"github.com/gravitational/gravity/lib/app"
@@ -33,6 +34,7 @@ import (
 	"github.com/gravitational/rigging"
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilrand "k8s.io/apimachinery/pkg/util/rand"
@@ -94,17 +96,26 @@ func NewOperationPlan(
 // and the given set of servers
 func newOperationPlan(config planConfig) (plan *storage.OperationPlan, err error) {
 	updatesServiceCIDR := config.clusterConfig.GetGlobalConfig().ServiceCIDR != ""
+	updatesCertSANs := len(config.clusterConfig.GetGlobalConfig().APIServerCertSANs) > 0
+	updatesLBAddr := config.clusterConfig.GetGlobalConfig().LoadBalancer != nil &&
+		config.clusterConfig.GetGlobalConfig().LoadBalancer.Type == clusterconfig.LoadbalancerExternal
 	var builder *builder
-	var updates []storage.UpdateServer
 	if updatesServiceCIDR {
 		builder = newBuilderWithServices(config)
+	} else {
+		builder = newBuilder(config.app.Package)
+	}
+	var updates []storage.UpdateServer
+	if updatesServiceCIDR || updatesCertSANs || updatesLBAddr {
+		if out, err := json.Marshal(config.clusterConfig.GetGlobalConfig()); err == nil {
+			log.WithField("global-config", string(out)).Info("Cluster configuration.5")
+		}
 		updates, err = rollingupdate.RuntimeConfigUpdatesWithSecrets(
 			config.app.Manifest, config.operator, config.operation.Key(), config.servers)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
 	} else {
-		builder = newBuilder(config.app.Package)
 		updates, err = rollingupdate.RuntimeConfigUpdates(
 			config.app.Manifest, config.operator, config.operation.Key(), config.servers)
 		if err != nil {

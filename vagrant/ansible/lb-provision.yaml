@@ -1,0 +1,57 @@
+---
+- hosts: node-lb
+  become: yes
+  vars:
+    kubeAPIPort: 9443
+  tasks:
+    - name: Enable EPEL Repository on CentOS 8
+      dnf:
+        name: epel-release
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+        - ansible_facts['distribution_major_version'] == '8'
+    - name: Enable EPEL Repository on CentOS 7
+      yum:
+        name: epel-release
+      when:
+        - ansible_facts['os_family'] == 'RedHat'
+        - ansible_facts['distribution_major_version'] == '7'
+
+    - name: Install required packages
+      package:
+        name:
+          - curl
+          - htop
+          - iotop
+          - lsof
+          - ltrace
+          - mc
+          - net-tools
+          - strace
+          - tcpdump
+          - telnet
+          - vim
+          - wget
+          - chrony
+          - traceroute
+          - haproxy
+    - name: configure haproxy
+      template:
+        src: haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+      notify:
+        - Restart haproxy
+
+    - name: Start services, if not started
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      with_items:
+        - haproxy
+
+  handlers:
+    - name: Restart haproxy
+      service:
+        name: haproxy
+        state: restarted

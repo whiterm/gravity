@@ -105,6 +105,7 @@ func (Build) Linux(ctx context.Context) (err error) {
 		}).
 		SetOutputPath(inOsArchContainerBinDir("linux", "amd64")).
 		AddLDFlags(buildFlags()).
+		//AddGCFlag("all=-N -l").
 		Build(ctx, packages...)
 
 	return trace.Wrap(err)

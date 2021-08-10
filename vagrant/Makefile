@@ -15,7 +15,8 @@ APP ?= telekube
 FLAVOR ?= three
 REMOTE_HOSTS ?=
 REMOTE_KEY ?=
-REMOTE_SSH_CONFIG ?= 
+REMOTE_SSH_CONFIG ?=
+VAGRANT_INSTANCES ?= 3
 export
 
 .PHONY: 1bignode
@@ -56,9 +57,7 @@ ansible-inventory:
 		echo '[local]' && \
 		echo 'localhost ansible_connection=local' && \
 		echo '[nodes]' && \
-		for (( i=0 ; i<$${#machines[@]}; i++ )); do \
-			echo "$${machines[i]}" ; \
-		done ; \
+		    echo "node-[1:${VAGRANT_INSTANCES}]" && \
 		echo '[first]' && \
 		echo "$${machines[0]}" ; \
 		echo '[all:vars]' && \

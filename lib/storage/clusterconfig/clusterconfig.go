@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gravitational/gravity/lib/utils"
+
 	"github.com/gravitational/gravity/lib/constants"
 	"github.com/gravitational/gravity/lib/defaults"
 	"github.com/gravitational/gravity/lib/storage"
@@ -173,7 +175,28 @@ func (r Resource) Merge(other Resource) Resource {
 		}
 		*r.Spec.Global.HighAvailability = *other.Spec.Global.HighAvailability
 	}
+	if other.Spec.Global.LoadBalancer != nil {
+		if r.Spec.Global.LoadBalancer == nil {
+			r.Spec.Global.LoadBalancer = &LoadBalancer{}
+		}
+		*r.Spec.Global.LoadBalancer = *other.Spec.Global.LoadBalancer
+	}
+	if len(other.Spec.Global.APIServerCertSANs) > 0 {
+		r.Spec.Global.APIServerCertSANs = other.Spec.Global.APIServerCertSANs
+	}
 	return r
+}
+
+// Populate changes the cluster configuration
+func (r *Resource) Populate() {
+	if r.Spec.Global.LoadBalancer == nil {
+		r.Spec.Global.LoadBalancer = &LoadBalancer{
+			Type: LoadbalancerInternal,
+		}
+	}
+	if r.Spec.Global.LoadBalancer.Type == LoadbalancerExternal && r.Spec.Global.LoadBalancer.ExternalAddress != "" {
+		r.Spec.Global.APIServerCertSANs = utils.AppendIfMissing(r.Spec.Global.APIServerCertSANs, r.Spec.Global.LoadBalancer.ExternalAddress)
+	}
 }
 
 // Unmarshal unmarshals the resource from either YAML- or JSON-encoded data
@@ -265,6 +288,23 @@ type Kubelet struct {
 	Config json.RawMessage `json:"config,omitempty"`
 }
 
+// LoadbalancerType is a type of the loadbalancer
+type LoadbalancerType string
+
+// block with constants for loadbalancer types
+const (
+	LoadbalancerExternal LoadbalancerType = "external"
+	LoadbalancerInternal                  = "internal"
+)
+
+// LoadBalancer describes a loadbalancer configuration for the cluster
+type LoadBalancer struct {
+	// Type is a type of the loadbalancer
+	Type LoadbalancerType `json:"type,omitempty"`
+	// ExternalAddress is an address of loadbalancer if the type is external
+	ExternalAddress string `json:"externalAddress,omitempty"`
+}
+
 // ControlPlaneComponent defines configuration of a control plane component
 type ControlPlaneComponent struct {
 	json.RawMessage
@@ -275,10 +315,12 @@ func (r Global) IsEmpty() bool {
 	return r.CloudConfig == "" &&
 		r.ServiceCIDR == "" &&
 		r.PodCIDR == "" &&
+		len(r.APIServerCertSANs) == 0 &&
 		r.PodSubnetSize == "" &&
 		r.ServiceNodePortRange == "" &&
 		r.ProxyPortRange == "" &&
 		r.HighAvailability == nil &&
+		r.LoadBalancer == nil &&
 		r.FlannelBackend == "" &&
 		len(r.FeatureGates) == 0
 }
@@ -315,6 +357,11 @@ type Global struct {
 	HighAvailability *bool `json:"highAvailability,omitempty"`
 	// FlannelBackend specifies the backend to pair with flannel.
 	FlannelBackend string `json:"flannelBackend,omitempty"`
+	// LoadBalancer customizes the loadbalancer
+	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
+	// APIServerCertSANs specifies extra Subject Alternative Names (SANs) to use for the API Server serving certificate.
+	// Can be both IP addresses and DNS names.
+	APIServerCertSANs []string `json:"apiserverCertSANs,omitempty"`
 }
 
 // specSchemaTemplate is JSON schema for the cluster configuration resource
@@ -364,7 +411,16 @@ const specSchemaTemplate = `{
               }
             },
             "highAvailability": {"type": "boolean"},
-            "flannelBackend": {"type": "string"}
+            "flannelBackend": {"type": "string"},
+            "apiserverCertSANs": {"type": "array", "items": {"type": "string"}},
+            "loadBalancer": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "type": {"type": "string", "enum": [ "internal", "external" ]},
+                "externalAddress": {"type": "string"}
+              }
+            }
           }
         },
         "kubelet": {

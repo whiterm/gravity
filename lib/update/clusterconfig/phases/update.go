@@ -167,6 +167,7 @@ func (r *updateConfig) rotateSecrets(update storage.UpdateServer) error {
 		RuntimePackage: update.Runtime.Update.Package,
 		Server:         update.Server,
 		ServiceCIDR:    r.config.GetGlobalConfig().ServiceCIDR,
+		Config:         r.operation.UpdateConfig.Config,
 	})
 	if err != nil {
 		return trace.Wrap(err)

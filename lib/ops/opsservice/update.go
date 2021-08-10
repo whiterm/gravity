@@ -18,6 +18,7 @@ package opsservice
 
 import (
 	"context"
+	"encoding/json"
 	"path/filepath"
 
 	"github.com/gravitational/gravity/lib/app"
@@ -75,7 +76,7 @@ func (o *Operator) RotateSecrets(req ops.RotateSecretsRequest) (resp *ops.Rotate
 		return nil, trace.Wrap(err)
 	}
 
-	resp, err = cluster.rotateSecrets(ctx, secretsPackage, node, serviceSubnet(op.InstallExpand, req.ServiceCIDR))
+	resp, err = cluster.rotateSecrets(ctx, secretsPackage, node, serviceSubnet(op.InstallExpand, req.ServiceCIDR), req.Config)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -281,11 +282,15 @@ func (o *Operator) RotatePlanetConfig(req ops.RotatePlanetConfigRequest) (*ops.R
 	}
 
 	if len(req.Config) != 0 {
+		log.WithField("requestConfig", string(req.Config)).Info("Cluster configuration.3")
 		clusterConfig, err := clusterconfig.Unmarshal(req.Config)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
 		config.config = clusterConfig
+		if configOut, err := json.Marshal(config.config); err == nil {
+			log.WithField("config", string(configOut)).Info("Cluster configuration.4")
+		}
 	} else {
 		// Keep the existing cluster configuration during the update
 		clusterConfig, err := cluster.getClusterConfiguration()

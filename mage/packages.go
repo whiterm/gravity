@@ -80,7 +80,7 @@ var (
 		name:       "planet",
 		version:    planetVersion,
 		//gitBranch:  planetBranch,
-		gitBranch: "whiterm/loadbalancing",
+		gitBranch: "feature/lb-only-apiserver",
 		//gitBranch: "whiterm/lb-tmp",
 		//gitBranch: "master",
 		//gitRepo:    "https://github.com/gravitational/planet",

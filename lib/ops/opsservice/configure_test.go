@@ -162,6 +162,9 @@ multizone=true`,
 						"FeatureA": true,
 						"FeatureB": false,
 					},
+					LoadBalancer: &clusterconfig.LoadBalancer{
+						Type: clusterconfig.LoadbalancerInternal,
+					},
 				},
 			},
 		},
@@ -208,9 +211,11 @@ multizone=true`,
 			"kubernetes.io/hostname=172.12.13.0",
 			"kubernetes.io/os=linux",
 		},
-		"kubelet-config": {base64.StdEncoding.EncodeToString(configBytes)},
-		"service-subnet": {"10.0.0.1/8"},
-		"pod-subnet":     {"10.0.1.1/8"},
+		"kubelet-config":        {base64.StdEncoding.EncodeToString(configBytes)},
+		"service-subnet":        {"10.0.0.1/8"},
+		"pod-subnet":            {"10.0.1.1/8"},
+		"loadbalancer-ext-addr": {""},
+		"loadbalancer-type":     {"internal"},
 	}))
 	assertFeatures(features, []string{"FeatureA=true", "FeatureB=false"}, c)
 }
@@ -265,7 +270,13 @@ func (s *ConfigureSuite) TestCanSetCloudProviderWithoutCloudConfig(c *check.C) {
 				Name:      constants.ClusterConfigurationMap,
 				Namespace: defaults.KubeSystemNamespace,
 			},
-			Spec: clusterconfig.Spec{},
+			Spec: clusterconfig.Spec{
+				Global: clusterconfig.Global{
+					LoadBalancer: &clusterconfig.LoadBalancer{
+						Type: clusterconfig.LoadbalancerInternal,
+					},
+				},
+			},
 		},
 	}
 	args, err := s.cluster.getPlanetConfig(config)
@@ -308,8 +319,10 @@ func (s *ConfigureSuite) TestCanSetCloudProviderWithoutCloudConfig(c *check.C) {
 			"kubernetes.io/hostname=172.12.13.0",
 			"kubernetes.io/os=linux",
 		},
-		"service-subnet": {"10.0.0.1/8"},
-		"pod-subnet":     {"10.0.1.1/8"},
+		"service-subnet":        {"10.0.0.1/8"},
+		"pod-subnet":            {"10.0.1.1/8"},
+		"loadbalancer-ext-addr": {""},
+		"loadbalancer-type":     {"internal"},
 	}))
 }
 

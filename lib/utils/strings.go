@@ -120,3 +120,13 @@ func SplitSlice(slice []string, batchSize int) (result [][]string) {
 	}
 	return result
 }
+
+// AppendIfMissing adds an item to the slice if it is not there
+func AppendIfMissing(slice []string, s string) []string {
+	for _, v := range slice {
+		if v == s {
+			return slice
+		}
+	}
+	return append(slice, s)
+}

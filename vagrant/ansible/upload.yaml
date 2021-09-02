@@ -3,6 +3,7 @@
     root_dir: "{{playbook_dir}}/../.."
     tarball_path: ""
     gravity_archive_url: ""
+    gravity_version: ""
   tasks:
     - name: Capture gravity version
       delegate_to: localhost
@@ -10,9 +11,14 @@
       args:
         chdir: "{{root_dir}}"
       register: command_output
+      when:
+        - gravity_version|length == 0
     - set_fact:
         gravity_version: "{{ command_output.stdout }}"
-        build_tarball_path: "{{root_dir}}/build/{{command_output.stdout}}/telekube.tar"
+      when:
+        - gravity_version|length == 0
+    - set_fact:
+        build_tarball_path: "{{root_dir}}/_build/{{gravity_version}}/gravity.tar"
     - set_fact:
         current_tarball_path: "{{ tarball_path | default(build_tarball_path, true) }}"
     - debug: msg="gravity version - {{gravity_version}}. tarball - {{ current_tarball_path }}"
@@ -78,7 +84,7 @@
       become: yes
       copy:
         force: yes
-        src: "{{root_dir}}/build/{{gravity_version}}/gravity"
+        src: "{{root_dir}}/_build/{{gravity_version}}/bin/linux-amd64/gravity"
         dest: "/installer/gravity/gravity"
         mode: 0755
 

@@ -79,7 +79,8 @@ var (
 		repository: "gravitational.io",
 		name:       "planet",
 		version:    planetVersion,
-		gitRepo:    "https://github.com/gravitational/planet",
+		gitBranch:  "whiterm/apiserver-lb",
+		gitRepo:    "https://github.com/whiterm/planet",
 		env: map[string]string{
 			"PLANET_BUILD_TAG": planetVersion,
 		},

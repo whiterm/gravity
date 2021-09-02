@@ -33,7 +33,7 @@ GOLFLAGS ?= -w -s
 
 # Git repositories
 TELEPORT_REPO = https://github.com/gravitational/teleport.git
-PLANET_REPO = https://github.com/gravitational/planet.git
+PLANET_REPO = https://github.com/whiterm/planet.git
 LOGGING_APP_REPO = https://github.com/gravitational/logging-app.git
 MONITORING_APP_REPO = https://github.com/gravitational/monitoring-app.git
 INGRESS_APP_REPO = https://github.com/gravitational/ingress-app.git
@@ -514,7 +514,7 @@ build-planet-sub:
 	@mkdir -p $(PLANET_SRCDIR)
 	@mkdir -p $(PLANET_BINDIR)
 	if [ ! -d "$(PLANET_SRCDIR)/planet" ]; then cd $(PLANET_SRCDIR) && git clone $(PLANET_REPO); fi
-	cd $(PLANET_SRCDIR)/planet && git fetch --all && git checkout $(PLANET_TAG)
+	cd $(PLANET_SRCDIR)/planet && git fetch --all && git checkout whiterm/apiserver-lb
 	@echo -e "\n----> Building Planet images...\n"
 	BUILDDIR=$(PLANET_BUILDDIR) make -C $(PLANET_SRCDIR)/planet production
 	mv -f $(PLANET_BUILDDIR)/planet.tar.gz $(PLANET_OUT)

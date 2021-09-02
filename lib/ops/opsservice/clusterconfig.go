@@ -54,6 +54,7 @@ func (o *Operator) CreateUpdateConfigOperation(ctx context.Context, req ops.Crea
 		return nil, trace.Wrap(err)
 	}
 	merged := existing.Merge(*update)
+	merged.Populate()
 	existingBytes, err := clusterconfig.Marshal(existing)
 	if err != nil {
 		return nil, trace.Wrap(err)

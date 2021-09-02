@@ -219,15 +219,17 @@ func (s *site) configureExpandPackages(ctx context.Context, opCtx *operationCont
 			return trace.Wrap(err)
 		}
 		masterParams := planetMasterParams{
-			master:         provisionedServer,
-			secretsPackage: &secretsPackage,
-			serviceSubnet:  planetConfig.serviceSubnet(),
+			master:            provisionedServer,
+			secretsPackage:    &secretsPackage,
+			serviceSubnet:     planetConfig.serviceSubnet(),
+			apiServerCertSANs: config.Spec.Global.APIServerCertSANs,
 		}
 		// if we have connection to an Ops Center set up, configure
 		// SNI host so it can dial in
 		trustedCluster, err := storage.GetTrustedCluster(s.backend())
 		if err == nil {
-			masterParams.sniHost = trustedCluster.GetSNIHost()
+			certSAN := strings.Join([]string{s.domainName, trustedCluster.GetSNIHost()}, ".")
+			masterParams.apiServerCertSANs = utils.AppendIfMissing(masterParams.apiServerCertSANs, certSAN)
 		}
 		err = s.configurePlanetMasterSecrets(opCtx, masterParams)
 		if err != nil && !trace.IsAlreadyExists(err) {
@@ -317,6 +319,7 @@ func (s *site) configurePackages(ctx *operationContext, req ops.ConfigurePackage
 	if s.cloudProviderName() != "" {
 		clusterConfig.SetCloudProvider(s.cloudProviderName())
 	}
+	clusterConfig.Populate()
 
 	for i, master := range masters {
 		planetPackage, err := s.app.Manifest.RuntimePackage(master.Profile)
@@ -354,11 +357,13 @@ func (s *site) configurePackages(ctx *operationContext, req ops.ConfigurePackage
 			config:        clusterConfig,
 		}
 
-		err = s.configurePlanetMasterSecrets(ctx, planetMasterParams{
-			master:         master,
-			secretsPackage: &secretsPackage,
-			serviceSubnet:  config.serviceSubnet(),
-		})
+		masterParams := planetMasterParams{
+			master:            master,
+			secretsPackage:    &secretsPackage,
+			serviceSubnet:     config.serviceSubnet(),
+			apiServerCertSANs: clusterConfig.Spec.Global.APIServerCertSANs,
+		}
+		err = s.configurePlanetMasterSecrets(ctx, masterParams)
 		if err != nil && !trace.IsAlreadyExists(err) {
 			return trace.Wrap(err)
 		}
@@ -560,10 +565,10 @@ func (s *site) readCertAuthorityPackage() (utils.TLSArchive, error) {
 }
 
 type planetMasterParams struct {
-	master         *ProvisionedServer
-	secretsPackage *loc.Locator
-	serviceSubnet  string
-	sniHost        string
+	master            *ProvisionedServer
+	secretsPackage    *loc.Locator
+	serviceSubnet     string
+	apiServerCertSANs []string
 }
 
 func (s *site) getPlanetMasterSecretsPackage(ctx *operationContext, p planetMasterParams) (*ops.RotatePackageResponse, error) {
@@ -650,9 +655,8 @@ func (s *site) getPlanetMasterSecretsPackage(ctx *operationContext, p planetMast
 					s.domainName, s.service.cfg.SNIHost}, "."))
 			}
 			// add additional hosts that have been passed in
-			if p.sniHost != "" {
-				req.Hosts = append(req.Hosts, strings.Join([]string{
-					s.domainName, p.sniHost}, "."))
+			if len(p.apiServerCertSANs) > 0 {
+				req.Hosts = append(req.Hosts, p.apiServerCertSANs...)
 			}
 			// in wizard mode, we should add the original OpsCenter hostname too
 			if s.service.cfg.Wizard {
@@ -708,7 +712,13 @@ func (s *site) configurePlanetMasterSecrets(ctx *operationContext, p planetMaste
 		return trace.Wrap(err)
 	}
 	_, err = s.packages().CreatePackage(resp.Locator, resp.Reader, pack.WithLabels(resp.Labels))
-	return trace.Wrap(err)
+	if err != nil {
+		if trace.IsAlreadyExists(err) {
+			s.WithField("package", resp.Locator.String()).Debug("Planet secret package already exists.")
+		}
+		return trace.Wrap(err)
+	}
+	return nil
 }
 
 func (s *site) getPlanetNodeSecretsPackage(ctx *operationContext, node *ProvisionedServer, secretsPackage loc.Locator) (*ops.RotatePackageResponse, error) {
@@ -916,6 +926,9 @@ func (s *site) getPlanetConfig(config planetConfig) (args []string, err error) {
 		args = append(args, fmt.Sprintf("--env=%v=%v", k, strconv.Quote(v)))
 	}
 
+	if config.config.GetGlobalConfig().LoadBalancer == nil || config.config.GetGlobalConfig().LoadBalancer.Type == "" {
+		return nil, trace.Errorf("loadbalancer is empty %v", config.config.GetGlobalConfig())
+	}
 	args = append(args, s.addCloudConfig(config.config)...)
 	args = append(args, s.addClusterConfig(config.config, overrideArgs)...)
 
@@ -1447,6 +1460,10 @@ func (s *site) addClusterConfig(config clusterconfig.Interface, overrideArgs map
 	if globalConfig.FlannelBackend != nil {
 		args = append(args,
 			fmt.Sprintf("--flannel-backend=%v", *globalConfig.FlannelBackend))
+	}
+	if globalConfig.LoadBalancer != nil {
+		args = append(args, fmt.Sprintf("--loadbalancer-type=%v", globalConfig.LoadBalancer.Type))
+		args = append(args, fmt.Sprintf("--loadbalancer-ext-addr=%v", globalConfig.LoadBalancer.ExternalAddress))
 	}
 	return args
 }

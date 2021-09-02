@@ -1,0 +1,13 @@
+version: v1
+kind: clusterconfiguration
+metadata:
+  name: cluster-configuration
+spec:
+  global:
+    loadBalancer:
+      type: external
+      externalAddress: 172.28.128.100
+    apiserverCertSANs:
+      - "www.example.com"
+    highAvailability: true
+

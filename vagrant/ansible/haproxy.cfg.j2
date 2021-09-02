@@ -1,0 +1,31 @@
+global
+    log /dev/log    local0
+    log /dev/log    local1 notice
+    chroot /var/lib/haproxy
+    user haproxy
+    group haproxy
+    daemon
+
+defaults
+    log     global
+    mode    tcp
+    option  tcplog
+    option  dontlognull
+    timeout http-request 10s
+    timeout queue        1m
+    timeout connect      10s
+    timeout client       86400s
+    timeout server       86400s
+    timeout tunnel       86400s
+frontend control-plane
+  bind *:{{ kubeAPIPort }}
+  default_backend kube-apiservers
+backend kube-apiservers
+    mode tcp
+    option ssl-hello-chk
+    option log-health-checks
+    balance roundrobin
+    default-server verify none inter 5s downinter 5s rise 2 fall 2 slowstart 60s maxconn 5000 maxqueue 5000 weight 100
+{% for item in range(1, vm_instances + 1) %}
+    server master-{{ item }} 172.28.128.{{ 100 + item }}:6443 check
+{% endfor %}

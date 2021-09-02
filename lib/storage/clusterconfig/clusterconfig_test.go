@@ -172,7 +172,12 @@ spec:
       FeatureB: false
     podSubnetSize: "26"
     highAvailability: true
-    flannelBackend: "vxlan"`,
+    flannelBackend: "vxlan"
+    apiserverCertSANs:
+      - "example.com"
+      - "foo.com"
+    loadBalancer:
+      type: internal`,
 			resource: &Resource{
 				Kind:    storage.KindClusterConfiguration,
 				Version: "v1",
@@ -186,9 +191,11 @@ spec:
 							"FeatureA": true,
 							"FeatureB": false,
 						},
-						PodSubnetSize:    "26",
-						HighAvailability: newBoolPtr(true),
-						FlannelBackend:   utils.StringPtr("vxlan"),
+						PodSubnetSize:     "26",
+						HighAvailability:  newBoolPtr(true),
+						FlannelBackend:    utils.StringPtr("vxlan"),
+						LoadBalancer:      &LoadBalancer{Type: LoadbalancerInternal},
+						APIServerCertSANs: []string{"example.com", "foo.com"},
 					},
 				},
 			},
@@ -248,6 +255,9 @@ func (*S) TestMergesClusterConfiguration(c *C) {
 						},
 						HighAvailability: newBoolPtr(true),
 						FlannelBackend:   utils.StringPtr("vxlan"),
+						LoadBalancer: &LoadBalancer{
+							Type: LoadbalancerInternal,
+						},
 					},
 				},
 			},
@@ -268,6 +278,9 @@ func (*S) TestMergesClusterConfiguration(c *C) {
 						},
 						HighAvailability: newBoolPtr(true),
 						FlannelBackend:   utils.StringPtr("vxlan"),
+						LoadBalancer: &LoadBalancer{
+							Type: LoadbalancerInternal,
+						},
 					},
 				},
 			},
@@ -372,6 +385,60 @@ address: 10.0.0.1
 				},
 			},
 			comment: "does not override cloud provider field",
+		},
+		{
+			existing: Resource{
+				Spec: Spec{
+					Global: Global{
+						LoadBalancer: &LoadBalancer{
+							Type: LoadbalancerExternal,
+						},
+					},
+				},
+			},
+			update: Resource{
+				Spec: Spec{
+					Global: Global{
+						LoadBalancer: &LoadBalancer{
+							Type: LoadbalancerInternal,
+						},
+					},
+				},
+			},
+			expected: Resource{
+				Spec: Spec{
+					Global: Global{
+						LoadBalancer: &LoadBalancer{
+							Type: LoadbalancerInternal,
+						},
+					},
+				},
+			},
+			comment: "unable to merge the loadbalancer fields",
+		},
+		{
+			existing: Resource{
+				Spec: Spec{
+					Global: Global{
+						APIServerCertSANs: []string{"value1"},
+					},
+				},
+			},
+			update: Resource{
+				Spec: Spec{
+					Global: Global{
+						APIServerCertSANs: []string{"value2"},
+					},
+				},
+			},
+			expected: Resource{
+				Spec: Spec{
+					Global: Global{
+						APIServerCertSANs: []string{"value2"},
+					},
+				},
+			},
+			comment: "unable to merge the apiserverCertSANs fields",
 		},
 	}
 	for _, testCase := range testCases {

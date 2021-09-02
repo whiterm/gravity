@@ -94,17 +94,23 @@ func NewOperationPlan(
 // and the given set of servers
 func newOperationPlan(config planConfig) (plan *storage.OperationPlan, err error) {
 	updatesServiceCIDR := config.clusterConfig.GetGlobalConfig().ServiceCIDR != ""
+	updatesCertSANs := len(config.clusterConfig.GetGlobalConfig().APIServerCertSANs) > 0
+	updatesLBAddr := config.clusterConfig.GetGlobalConfig().LoadBalancer != nil &&
+		config.clusterConfig.GetGlobalConfig().LoadBalancer.Type == clusterconfig.LoadbalancerExternal
 	var builder *builder
-	var updates []storage.UpdateServer
 	if updatesServiceCIDR {
 		builder = newBuilderWithServices(config)
+	} else {
+		builder = newBuilder(config.app.Package)
+	}
+	var updates []storage.UpdateServer
+	if updatesServiceCIDR || updatesCertSANs || updatesLBAddr {
 		updates, err = rollingupdate.RuntimeConfigUpdatesWithSecrets(
 			config.app.Manifest, config.operator, config.operation.Key(), config.servers)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
 	} else {
-		builder = newBuilder(config.app.Package)
 		updates, err = rollingupdate.RuntimeConfigUpdates(
 			config.app.Manifest, config.operator, config.operation.Key(), config.servers)
 		if err != nil {
@@ -198,7 +204,8 @@ func shouldUpdateNodes(clusterConfig clusterconfig.Interface, numWorkerNodes int
 	hasComponentUpdate := len(config.FeatureGates) != 0
 	hasCIDRUpdate := len(config.PodCIDR) != 0 || len(config.ServiceCIDR) != 0 || config.PodSubnetSize != ""
 	hasFlannelUpdate := config.FlannelBackend != nil
-	return !clusterConfig.GetKubeletConfig().IsEmpty() || hasComponentUpdate || hasCIDRUpdate || hasFlannelUpdate
+	hasLBAddrUpdate := config.LoadBalancer != nil
+	return !clusterConfig.GetKubeletConfig().IsEmpty() || hasComponentUpdate || hasCIDRUpdate || hasFlannelUpdate || hasLBAddrUpdate
 }
 
 type planConfig struct {

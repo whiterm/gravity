@@ -84,6 +84,7 @@ node-tags=example-cluster
 multizone="true"
 token-url="https://path/to/endpoint"
 `,
+				LoadBalancer: &clusterconfig.LoadBalancer{Type: clusterconfig.LoadbalancerInternal},
 			},
 		}), c),
 	}

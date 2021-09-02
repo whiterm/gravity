@@ -579,6 +579,7 @@ func (s *site) getClusterConfiguration() (*clusterconfig.Resource, error) {
 	if err := s.setClusterConfigDefaults(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
+	config.Populate()
 	return config, nil
 }
 
@@ -598,6 +599,12 @@ func (s *site) setClusterConfigDefaults(config *clusterconfig.Resource) error {
 	}
 	if config.Spec.Global.ServiceCIDR == "" {
 		config.Spec.Global.ServiceCIDR = installOp.InstallExpand.Vars.OnPrem.ServiceCIDR
+	}
+	if config.Spec.Global.LoadBalancer == nil {
+		config.Spec.Global.LoadBalancer = &clusterconfig.LoadBalancer{}
+	}
+	if config.Spec.Global.LoadBalancer.Type == "" {
+		config.Spec.Global.LoadBalancer.Type = clusterconfig.LoadbalancerInternal
 	}
 	return nil
 }

@@ -17,16 +17,21 @@ limitations under the License.
 package opsservice
 
 import (
+	"strings"
+
 	"github.com/gravitational/gravity/lib/loc"
 	"github.com/gravitational/gravity/lib/ops"
 	"github.com/gravitational/gravity/lib/storage"
+	"github.com/gravitational/gravity/lib/storage/clusterconfig"
+	"github.com/gravitational/gravity/lib/utils"
 
 	"github.com/gravitational/trace"
 )
 
 // rotateSecrets generates a new set of TLS keys for the given node
 // as a package that will be automatically downloaded during upgrade
-func (s *site) rotateSecrets(ctx *operationContext, secretsPackage loc.Locator, node *ProvisionedServer, serviceCIDR string) (*ops.RotatePackageResponse, error) {
+func (s *site) rotateSecrets(ctx *operationContext, secretsPackage loc.Locator,
+	node *ProvisionedServer, serviceCIDR string, config []byte) (*ops.RotatePackageResponse, error) {
 	if !node.IsMaster() {
 		resp, err := s.getPlanetNodeSecretsPackage(ctx, node, secretsPackage)
 		if err != nil {
@@ -35,16 +40,33 @@ func (s *site) rotateSecrets(ctx *operationContext, secretsPackage loc.Locator, 
 		return resp, nil
 	}
 
+	var clusterConfig *clusterconfig.Resource
+	if len(config) != 0 {
+		var err error
+		clusterConfig, err = clusterconfig.Unmarshal(config)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	} else {
+		var err error
+		clusterConfig, err = s.getClusterConfiguration()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	}
+
 	masterParams := planetMasterParams{
-		master:         node,
-		secretsPackage: &secretsPackage,
-		serviceSubnet:  serviceCIDR,
+		master:            node,
+		secretsPackage:    &secretsPackage,
+		serviceSubnet:     serviceCIDR,
+		apiServerCertSANs: clusterConfig.Spec.Global.APIServerCertSANs,
 	}
 	// if we have a connection to Ops Center set up, configure
 	// SNI host so Ops Center can dial in
 	trustedCluster, err := storage.GetTrustedCluster(s.backend())
 	if err == nil {
-		masterParams.sniHost = trustedCluster.GetSNIHost()
+		certSAN := strings.Join([]string{s.domainName, trustedCluster.GetSNIHost()}, ".")
+		masterParams.apiServerCertSANs = utils.AppendIfMissing(masterParams.apiServerCertSANs, certSAN)
 	}
 
 	resp, err := s.getPlanetMasterSecretsPackage(ctx, masterParams)

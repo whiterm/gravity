@@ -717,7 +717,7 @@ func (i *InstallConfig) updateClusterConfig(resources []storage.UnknownResource)
 		}
 		updated = append(updated, res)
 	}
-	var config clusterconfig.Interface
+	var config *clusterconfig.Resource
 	if clusterConfig == nil {
 		config = clusterconfig.New(clusterconfig.Spec{
 			Global: clusterconfig.Global{
@@ -732,6 +732,7 @@ func (i *InstallConfig) updateClusterConfig(resources []storage.UnknownResource)
 			return nil, trace.Wrap(err)
 		}
 	}
+	config.Populate()
 	globalConfig := config.GetGlobalConfig()
 	if globalConfig.CloudProvider != "" {
 		i.CloudProvider = globalConfig.CloudProvider
